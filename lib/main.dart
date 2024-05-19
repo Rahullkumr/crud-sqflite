@@ -13,8 +13,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Student CRUD App',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green,
       ),
       home: StudentListPage(),
     );
@@ -108,6 +109,7 @@ class _StudentListPageState extends State<StudentListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student CRUD App'),
+        backgroundColor: Colors.deepPurple,
       ),
       body: FutureBuilder<List<Student>>(
         future: _studentList,

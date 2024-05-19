@@ -5,10 +5,12 @@ import 'helpers/db_helper.dart';
 import 'models/student.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,12 +19,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
-      home: StudentListPage(),
+      home: const StudentListPage(),
     );
   }
 }
 
 class StudentListPage extends StatefulWidget {
+  const StudentListPage({super.key});
+
   @override
   _StudentListPageState createState() => _StudentListPageState();
 }
@@ -43,8 +47,8 @@ class _StudentListPageState extends State<StudentListPage> {
   }
 
   _showForm({Student? student}) {
-    final _nameController = TextEditingController(text: student?.name ?? '');
-    final _ageController =
+    final nameController = TextEditingController(text: student?.name ?? '');
+    final ageController =
         TextEditingController(text: student?.age.toString() ?? '');
 
     showDialog(
@@ -55,11 +59,11 @@ class _StudentListPageState extends State<StudentListPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _nameController,
+              controller: nameController,
               decoration: const InputDecoration(labelText: 'Name'),
             ),
             TextField(
-              controller: _ageController,
+              controller: ageController,
               decoration: const InputDecoration(labelText: 'Age'),
               keyboardType: TextInputType.number,
             ),
@@ -74,19 +78,19 @@ class _StudentListPageState extends State<StudentListPage> {
           ),
           TextButton(
             onPressed: () {
-              if (_nameController.text.isEmpty || _ageController.text.isEmpty) {
+              if (nameController.text.isEmpty || ageController.text.isEmpty) {
                 return;
               }
               if (student == null) {
                 DBHelper().insertStudent(Student(
-                  name: _nameController.text,
-                  age: int.parse(_ageController.text),
+                  name: nameController.text,
+                  age: int.parse(ageController.text),
                 ));
               } else {
                 DBHelper().updateStudent(Student(
                   id: student.id,
-                  name: _nameController.text,
-                  age: int.parse(_ageController.text),
+                  name: nameController.text,
+                  age: int.parse(ageController.text),
                 ));
               }
               _refreshStudentList();

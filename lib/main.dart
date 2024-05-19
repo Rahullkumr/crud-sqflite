@@ -14,6 +14,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Student CRUD App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -102,6 +103,7 @@ class StudentListPageState extends State<StudentListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.deepPurple,
         title: const Text('Student List'),
       ),
       body: FutureBuilder<List<Student>>(

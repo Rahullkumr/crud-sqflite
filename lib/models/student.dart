@@ -1,9 +1,7 @@
-// lib/models/student.dart
-
 class Student {
-  int? id;
-  String name;
-  int age;
+  final int? id;
+  final String name;
+  final int age;
 
   Student({this.id, required this.name, required this.age});
 

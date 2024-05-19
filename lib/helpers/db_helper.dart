@@ -1,63 +1,57 @@
-// lib/helpers/db_helper.dart
-
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/student.dart';
-import 'dart:io';
 
-class DBHelper {
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
-  static final DBHelper _instance = DBHelper._internal();
 
-  factory DBHelper() {
-    return _instance;
-  }
-
-  DBHelper._internal();
+  DatabaseHelper._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB();
+    _database = await _initDB('students.db');
     return _database!;
   }
 
-  Future<Database> _initDB() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, 'students.db');
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
     return await openDatabase(
       path,
       version: 1,
-      onCreate: _onCreate,
+      onCreate: _createDB,
     );
   }
 
-  Future _onCreate(Database db, int version) async {
+  Future _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        age INTEGER
-      )
+    CREATE TABLE students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      age INTEGER NOT NULL
+    )
     ''');
   }
 
-  Future<int> insertStudent(Student student) async {
-    Database db = await database;
-    return await db.insert('students', student.toMap());
+  Future<Student> create(Student student) async {
+    final db = await instance.database;
+    final id = await db.insert('students', student.toMap());
+    return Student(id: id, name: student.name, age: student.age);
   }
 
-  Future<List<Student>> getStudents() async {
-    Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('students');
-    return List.generate(maps.length, (i) {
-      return Student.fromMap(maps[i]);
-    });
+  Future<List<Student>> readAllStudents() async {
+    final db = await instance.database;
+    final result = await db.query('students');
+
+    return result.map((json) => Student.fromMap(json)).toList();
   }
 
-  Future<int> updateStudent(Student student) async {
-    Database db = await database;
-    return await db.update(
+  Future<int> update(Student student) async {
+    final db = await instance.database;
+
+    return db.update(
       'students',
       student.toMap(),
       where: 'id = ?',
@@ -65,12 +59,19 @@ class DBHelper {
     );
   }
 
-  Future<int> deleteStudent(int id) async {
-    Database db = await database;
+  Future<int> delete(int id) async {
+    final db = await instance.database;
+
     return await db.delete(
       'students',
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future close() async {
+    final db = await instance.database;
+
+    db.close();
   }
 }

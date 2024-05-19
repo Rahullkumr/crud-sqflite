@@ -15,9 +15,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Student CRUD App',
-      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        primarySwatch: Colors.blue,
       ),
       home: const StudentListPage(),
     );
@@ -28,30 +27,31 @@ class StudentListPage extends StatefulWidget {
   const StudentListPage({super.key});
 
   @override
-  _StudentListPageState createState() => _StudentListPageState();
+  StudentListPageState createState() => StudentListPageState();
 }
 
-class _StudentListPageState extends State<StudentListPage> {
-  late Future<List<Student>> _studentList;
+class StudentListPageState extends State<StudentListPage> {
+  late DatabaseHelper dbHelper;
+  late Future<List<Student>> students;
 
   @override
   void initState() {
     super.initState();
+    dbHelper = DatabaseHelper.instance;
     _refreshStudentList();
   }
 
-  _refreshStudentList() {
+  void _refreshStudentList() {
     setState(() {
-      _studentList = DBHelper().getStudents();
+      students = dbHelper.readAllStudents();
     });
   }
 
-  _showForm({Student? student}) {
-    final nameController = TextEditingController(text: student?.name ?? '');
-    final ageController =
-        TextEditingController(text: student?.age.toString() ?? '');
+  void _showForm(Student? student) async {
+    final nameController = TextEditingController(text: student?.name);
+    final ageController = TextEditingController(text: student?.age.toString());
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(student == null ? 'Add Student' : 'Edit Student'),
@@ -77,24 +77,19 @@ class _StudentListPageState extends State<StudentListPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              if (nameController.text.isEmpty || ageController.text.isEmpty) {
-                return;
+            onPressed: () async {
+              final name = nameController.text;
+              final age = int.tryParse(ageController.text) ?? 0;
+
+              if (name.isNotEmpty && age > 0) {
+                if (student == null) {
+                  await dbHelper.create(Student(name: name, age: age));
+                } else {
+                  await dbHelper.update(Student(id: student.id, name: name, age: age));
+                }
+                _refreshStudentList();
+                Navigator.of(context).pop();
               }
-              if (student == null) {
-                DBHelper().insertStudent(Student(
-                  name: nameController.text,
-                  age: int.parse(ageController.text),
-                ));
-              } else {
-                DBHelper().updateStudent(Student(
-                  id: student.id,
-                  name: nameController.text,
-                  age: int.parse(ageController.text),
-                ));
-              }
-              _refreshStudentList();
-              Navigator.of(context).pop();
             },
             child: const Text('Save'),
           ),
@@ -103,68 +98,59 @@ class _StudentListPageState extends State<StudentListPage> {
     );
   }
 
-  _deleteStudent(int id) {
-    DBHelper().deleteStudent(id);
-    _refreshStudentList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Student CRUD App'),
-        backgroundColor: Colors.deepPurple,
+        title: const Text('Student List'),
       ),
       body: FutureBuilder<List<Student>>(
-        future: _studentList,
+        future: students,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'No students found.',
-                style: TextStyle(fontSize: 30),
-              ),
-            );
-          } else {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final student = snapshot.data![index];
-                return ListTile(
-                  title: Text(student.name),
-                  subtitle: Text('Age: ${student.age}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          _showForm(student: student);
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          _deleteStudent(student.id!);
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No students found'));
           }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              final student = snapshot.data![index];
+
+              return ListTile(
+                title: Text(student.name),
+                subtitle: Text('Age: ${student.age}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        _showForm(student);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () async {
+                        await dbHelper.delete(student.id!);
+                        _refreshStudentList();
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showForm();
-        },
         child: const Icon(Icons.add),
+        onPressed: () {
+          _showForm(null);
+        },
       ),
     );
   }
